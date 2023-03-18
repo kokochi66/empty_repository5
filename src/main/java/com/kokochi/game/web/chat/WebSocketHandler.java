@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
+//@Component
 public class WebSocketHandler extends TextWebSocketHandler {
     private List<WebSocketSession> sessions = new ArrayList<>();
     @Override
