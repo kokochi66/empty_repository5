@@ -13,9 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class NettyServer {
 
-    private final int port = 1234;
-
-    public void start() throws Exception {
+    public void start(int port) throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
