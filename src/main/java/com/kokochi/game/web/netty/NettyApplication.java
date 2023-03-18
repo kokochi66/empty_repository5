@@ -10,6 +10,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.util.CharsetUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -20,18 +21,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
 public class NettyApplication {
-    private NettyServer nettyServer;
-
-    public NettyApplication() {
-    }
 
     public static void main(String[] args) {
         SpringApplication.run(NettyApplication.class, args);
-    }
-
-    public void run() throws Exception {
-        ApplicationContext context = new AnnotationConfigApplicationContext();
-        nettyServer = new NettyServer();
-        nettyServer.start(1234);
     }
 }
