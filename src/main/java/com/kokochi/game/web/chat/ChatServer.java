@@ -3,89 +3,99 @@ package com.kokochi.game.web.chat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-@Component
 public class ChatServer implements Runnable {
-
     private ServerSocket serverSocket;
-    private List<ClientHandler> clients = new ArrayList<>();
+    private List<ChatServerThread> threads = new ArrayList<ChatServerThread>();
 
-    @Override
+    public ChatServer() {
+        try {
+            this.serverSocket = new ServerSocket(1234);
+        } catch (Exception e) {
+            System.out.println("ChatServer 생성자 에러 : " + e);
+        }
+    }
+
     public void run() {
         try {
-            serverSocket = new ServerSocket(1234);
             while (true) {
                 Socket socket = serverSocket.accept();
-                ClientHandler client = new ClientHandler(socket);
-                clients.add(client);
-                Thread thread = new Thread(client);
+
+                ChatServerThread thread = new ChatServerThread(socket, this);
+                threads.add(thread);
                 thread.start();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("ChatServer run 에러 : " + e);
         }
     }
 
-    private void broadcast(String message, ClientHandler excludeClient) {
-        for (ClientHandler client : clients) {
-            if (client != excludeClient) {
-                client.sendMessage(message);
+    public void removeThread(ChatServerThread thread) {
+        threads.remove(thread);
+    }
+
+    public void broadcast(String message, ChatServerThread sender) {
+        for (ChatServerThread thread : threads) {
+            if (thread != sender) {
+                thread.sendMessage(message);
             }
         }
     }
 
-    private class ClientHandler implements Runnable {
-
+    public static class ChatServerThread extends Thread {
         private Socket socket;
+        private ChatServer chatServer;
+        private OutputStreamWriter writer;
         private BufferedReader reader;
-        private PrintWriter writer;
 
-        public ClientHandler(Socket socket) {
+        public ChatServerThread(Socket socket, ChatServer chatServer) {
             this.socket = socket;
+            this.chatServer = chatServer;
             try {
-                reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                writer = new PrintWriter(socket.getOutputStream(), true);
-            } catch (IOException e) {
-                e.printStackTrace();
+                this.writer = new OutputStreamWriter(socket.getOutputStream(), "UTF-8");
+                this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+            } catch (Exception e) {
+                System.out.println("ChatServerThread 생성자 에러 : " + e);
             }
         }
 
-        @Override
         public void run() {
             try {
                 while (true) {
                     String message = reader.readLine();
                     if (message == null) {
-                        clients.remove(this);
                         break;
                     }
-                    broadcast(message, this);
+
+                    chatServer.broadcast(message, this);
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                System.out.println("ChatServerThread run 에러 : " + e);
             } finally {
+                chatServer.removeThread(this);
                 try {
-                    reader.close();
-                    writer.close();
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    if (socket != null) {
+                        socket.close();
+                    }
+                } catch (Exception e) {
+                    System.out.println("ChatServerThread 소켓 종료 에러 : " + e);
                 }
             }
         }
 
         public void sendMessage(String message) {
-            writer.println(message);
+            try {
+                writer.write(message + "\r\n");
+                writer.flush();
+            } catch (Exception e) {
+                System.out.println("ChatServerThread sendMessage 에러 : " + e);
+            }
         }
-
     }
 }
